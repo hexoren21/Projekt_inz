@@ -76,7 +76,6 @@ public class MainActivity extends AppCompatActivity {
                 case STATE_MESSAGE_RECEIVED:
                     byte[] readBuff= (byte[]) msg.obj;
                     String tempMsg=new String(readBuff,0,msg.arg1);
-                    
                     msg_box.setText(tempMsg);
                     break;
             }

@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # Filename: text.py
+from bluetooth import *
+import sys
 import serial
 import time
 ser = serial.Serial("/dev/ttyS0",115200)
@@ -32,55 +34,37 @@ def changeDMStoDD(x):
 	return dd
 
 def Bluetooth(latitude, longitude):
-	ser.write("AT+BTPOWER=1\r\n")
-	ser.write("AT+BTHOST?\r\n")
-	data2=""
-	print ser.inWaiting()
-	while ser.inWaiting() > 0:
-		data2 += ser.read(ser.inWaiting())
-	print data2	
-	ser.write("AT+CGNSPWR=0\r\n")
-	ser.write("AT+BTSCAN=1,10\r\n")
-	data2 =""
-	#szukanie stacji bluetooth przez 30s
-	timeout = time.time() + 11
+	if sys.version < '3':
+
+		addr = "18:00:2D:7C:5B:E6"
+
+
+# search for the SampleServer service
+	uuid = "8ce255c0-200a-11e0-ac64-0800200c9a66"
+	service_matches = find_service( uuid = uuid, address = addr )
+
+	if len(service_matches) == 0:	
+		print("couldn't find the SampleServer service =(")
+		sys.exit(0)
+
+	first_match = service_matches[0]
+	port = first_match["port"]
+	name = first_match["name"]
+	host = first_match["host"]
+
+	print("connecting to \"%s\" on %s" % (name, host))
+
+	# Create the client socket
+	sock=BluetoothSocket( RFCOMM )
+	sock.connect((host, port))
+
+	print("connected.  type stuff")
 	while True:
-		data2 += ser.read(ser.inWaiting())
-		szukany_wyraz = "Xperia S"
-		if time.time() > timeout:
-			break
-	print "Wyswietlenie zawrtosci bluetooth"
-	print data2
-	print "Po bluetooth"
-	if szukany_wyraz in data2:
-		data2 = data2.split("+BTSCAN: ")
-		for j in range(0, len(data2)):
-			print data2[j]
-		#print len(data2)
-		for i in range(len(data2)):
-			if szukany_wyraz in data2[i]:
-				print "znalazl wyraz w:\n+BTSCAN:" + data2[i] + "\ni ma wartosc = " + str(i)
-				data2=""	
-				W_buff1 ="AT+BTPAIR=0,"+str(i)+"\r\n"
-				print W_buff1
-				time.sleep(0.5)
-				print "wpisanie polaczenia z urzadzeniem"
-				#ser.write("AT+BTPAIR=0,1\r\n")
-				#while ser.inWaiting() > 0:
-					#data2 += ser.read(ser.inWaiting())
-				print "wpsanie polaczenia sparowanie"
-				ser.write("AT+BTPAIR=1,1\r\n")
-				while ser.inWaiting() > 0:
-					data2 += ser.read(ser.inWaiting())
-				#timeout = time.time() + 100
-				#while True:
-					#data2 += ser.read(ser.inWaiting())
-				#	if time.time() > timeout:
-						#break	
-				print data2
-	print data2
-				
-	
+		data = latitude + ',' + longitude
+		sock.send(data)
+		break
+	sock.close()
+	time.sleep(10)
 	return 0
 #try:
 while True:
