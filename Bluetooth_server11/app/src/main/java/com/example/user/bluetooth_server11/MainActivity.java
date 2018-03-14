@@ -26,7 +26,6 @@ import java.util.Set;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
-    Button listen;
     TextView msg_box, status;
     public final String TAG = "MainActivity";
     BluetoothAdapter bluetoothAdapter;
@@ -55,23 +54,11 @@ public class MainActivity extends AppCompatActivity {
             startActivityForResult(enableIntent, REQUEST_ENABLE_BLUETOOTH);
         }
 
-
-
-       // implementListeners();
-
         ServerClass serverClass = new ServerClass();
         serverClass.start();
     }
 
-    private void implementListeners() {
-        listen.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                ServerClass serverClass = new ServerClass();
-                serverClass.start();
-            }
-        });
-    }
+
 
     Handler handler = new Handler(new Handler.Callback() {
         @Override
@@ -89,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
                 case STATE_MESSAGE_RECEIVED:
                     byte[] readBuff= (byte[]) msg.obj;
                     String tempMsg=new String(readBuff,0,msg.arg1);
+                    
                     msg_box.setText(tempMsg);
                     break;
             }
@@ -97,7 +85,6 @@ public class MainActivity extends AppCompatActivity {
     });
 
     private void findViewByIdeas() {
-        listen=(Button) findViewById(R.id.listen);
         msg_box=(TextView) findViewById(R.id.msg);
         status=(TextView) findViewById(R.id.status);
 
@@ -159,10 +146,8 @@ public class MainActivity extends AppCompatActivity {
         public SendReceive (BluetoothSocket socket){
             bluetoothSocket=socket;
             InputStream tempIn=null;
-            OutputStream tempOut=null;
             try {
                 tempIn = bluetoothSocket.getInputStream();
-                tempOut = bluetoothSocket.getOutputStream();
             }catch (IOException e){
                 e.printStackTrace();
             }
