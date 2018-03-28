@@ -4,8 +4,10 @@ from bluetooth import *
 import sys
 import serial
 import time
+from firebase import firebase
 ser = serial.Serial("/dev/ttyS0",115200)
 W_buff = ["AT+CGNSPWR=1\r\n", "AT+CGNSSEQ=\"RMC\"\r\n", "AT+CGNSINF\r\n", "AT+CGNSURC=2\r\n","AT+CGNSTST=1\r\n"]
+firebase = firebase.FirebaseApplication('https://lokalizacja-gps.firebaseio.com/Users58de49ab6bb5a502', None)
 
 ser.write(W_buff[0])
 ser.flushInput()
@@ -33,7 +35,7 @@ def changeDMStoDD(x):
 	dd = x[0] + temp
 	return dd
 
-def Bluetooth(latitude, longitude):
+def send_bluetooth_to_phone(latitude, longitude):
 	if sys.version < '3':
 
 		addr = "18:00:2D:7C:5B:E6"
@@ -44,7 +46,7 @@ def Bluetooth(latitude, longitude):
 	service_matches = find_service( uuid = uuid, address = addr )
 
 	if len(service_matches) == 0:	
-		print("couldn't find the SampleServer service =(")
+		print("couldn't find the SampleServer service")
 		sys.exit(0)
 
 	first_match = service_matches[0]
@@ -64,7 +66,61 @@ def Bluetooth(latitude, longitude):
 		sock.send(data)
 		break
 	sock.close()
-	time.sleep(10)
+	time.sleep(60)
+	return 0
+	
+def send_gprs_to_firebase(latitude, longitude):
+	data = time.strftime("%Y-%m-%d at ", time.localtime())
+	print data
+	czas = time.strftime("%H:%M", time.localtime())
+	czas = czas.split(':')
+	if int(czas[0]) >= 22: 
+		czas[0] = int(czas[0]) + 2 - 24
+	else:
+		czas[0] = int(czas[0]) + 2
+	data_calosc = "{0}{1}:{2}".format(data,czas[0],czas[1])
+	print data_calosc
+	wspolrzedne = "Latitude: " + latitude + ", Longitude: " + longitude;
+	result = firebase.post('/RaspberryPi',data={data_calosc:wspolrzedne})
+	time.sleep(60)
+	return 0
+	
+def check_data_gps(data1):
+	data1 = data1.split(",")
+	if len(data1) > 3:
+		print data1[1]
+		print data1[2]
+		print data1[4]
+		if data1[2].replace('.','',1).isdigit(): #usuwa 1 przecinek, jesli beda dwa zwroci false
+			if data1[4].replace('.','',1).isdigit():
+				latitude = changeDMStoDD(data1[2])
+				longitude = changeDMStoDD(data1[4])
+				print "Szerokosc geograficzna: " + latitude
+				print "Dlugosc geograficzna: " + longitude
+				# sprawdzenie zasiegu GPRS
+				#wylaczenie odbierania sygnalu GPS
+				ser.write("AT+CGNSTST=0\r\n")
+				ser.write("AT+CSQ\r\n")
+				print ser.inWaiting()
+				data_temp = ser.read(ser.inWaiting());
+				print data_temp
+				#pobrane wartosci sygnalu
+				data_temp = data_temp.split('CSQ: ')
+				data_temp1 = data_temp[1]
+				print("wartos zasiegu wynosi = {0}".format(data_temp1[0]))
+				if(int(data_temp1[0]) == 0):
+					send_bluetooth_to_phone(latitude, longitude)
+				#break;
+					return 1
+				else:
+					send_gprs_to_firebase(latitude, longitude)
+					return 1
+			else:
+				print "blad odczytu (Dlugosc zla)"
+				return 0
+		else:
+			print "Blad odczytu (Szerokosc zla)"
+			return 0 
 	return 0
 #try:
 while True:
@@ -77,24 +133,9 @@ while True:
 			print data
 			if num == 4:
 				data1 = data
-				data1 = data1.split(",")
-				if len(data1) > 3:
-					print data1[1]
-					print data1[2]
-					print data1[4]
-					if data1[2].replace('.','',1).isdigit(): #usuwa 1 przecinek, jesli beda dwa zwroci false
-						if data1[4].replace('.','',1).isdigit():
-							latitude = changeDMStoDD(data1[2])
-							longitude = changeDMStoDD(data1[4])
-							print "Szerokosc geograficzna: " + latitude
-							print "Dlugosc geograficzna: " + longitude
-							Bluetooth(latitude, longitude)
-							break;
-						else:
-							print "blad odczytu (Dlugosc zla)"
-					
-					else:
-						print "Blad odczytu (Szerokosc zla)"
+				if(check_data_gps(data1)):
+					break;
+				
 			#plik_tekstowy = open('suchy_kod.txt', 'w+')
 			#plik_tekstowy.write(data)
 			#plik_tekstowy.close

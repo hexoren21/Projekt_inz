@@ -190,8 +190,8 @@ public class MainActivity extends AppCompatActivity {
         final String date = df.format(Calendar.getInstance().getTime()).toString();
         Firebase myNewChild = myFirebase.child(date);
         myNewChild.setValue(myStringData);
-        // zatrzymanie apki na 15 s
-        new CountDownTimer(15000, 1000) {
+        // zatrzymanie apki na 55 s
+        new CountDownTimer(55000, 1000) {
 
             public void onTick(long millisUntilFinished) {
             }
