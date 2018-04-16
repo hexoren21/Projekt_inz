@@ -1,0 +1,1 @@
+print len("GET /update?key=49TE04U3HL5ZKO8B&field1=0.30&field2=0.40\r\n")
