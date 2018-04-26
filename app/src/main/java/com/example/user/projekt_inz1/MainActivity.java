@@ -43,7 +43,8 @@ public class MainActivity extends AppCompatActivity {
 
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)
+    {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         findViewByIdeas();
@@ -51,18 +52,21 @@ public class MainActivity extends AppCompatActivity {
         String DeviceID = Settings.Secure.getString(getApplicationContext().getContentResolver(), Settings.Secure.ANDROID_ID);
         myFirebase = new Firebase("https://lokalizacja-gps.firebaseio.com/Users" + DeviceID);
         bluetoothAdapter=BluetoothAdapter.getDefaultAdapter();
-        if(!bluetoothAdapter.isEnabled()){
+        if(!bluetoothAdapter.isEnabled())
+        {
             Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableIntent, REQUEST_ENABLE_BLUETOOTH);
         }
-
         ServerClass serverClass = new ServerClass();
         serverClass.start();
     }
-    Handler handler = new Handler(new Handler.Callback() {
+    Handler handler = new Handler(new Handler.Callback()
+    {
         @Override
-        public boolean handleMessage(Message msg) {
-            switch (msg.what){
+        public boolean handleMessage(Message msg)
+        {
+            switch (msg.what)
+            {
                 case STATE_CONNECTING:
                     status.setText("Connecting");
                     break;
@@ -83,109 +87,113 @@ public class MainActivity extends AppCompatActivity {
         }
     });
 
-    private void findViewByIdeas() {
+    private void findViewByIdeas()
+    {
         msg_box=(TextView) findViewById(R.id.msg);
         status=(TextView) findViewById(R.id.status);
-
     }
-
 
     private class ServerClass extends Thread
     {
-        public ServerClass(){
-            try {
+        public ServerClass()
+        {
+            try
+            {
                 serverSocket=bluetoothAdapter.listenUsingInsecureRfcommWithServiceRecord(APP_NAME, MY_UUID);
-            } catch (IOException e) {
+            } catch (IOException e)
+            {
                 e.printStackTrace();
             }
         }
-
         public void run()
         {
             BluetoothSocket socket=null;
             Log.e(TAG, "socket wynosi " + socket );
-
-
-            while (socket == null) {
-                try {
+            while (socket == null)
+            {
+                try
+                {
                     Message message = Message.obtain();
                     message.what = STATE_CONNECTING;
                     handler.sendMessage(message);
                     socket = serverSocket.accept();
-                } catch (IOException e) {
+                } catch (IOException e)
+                {
                     e.printStackTrace();
                     Message message = Message.obtain();
                     message.what = STATE_CONNECTION_FAILED;
                     handler.sendMessage(message);
                 }
-
-                if (socket != null) {
+                if (socket != null)
+                {
                     Log.e(TAG, "socket jest rozny ");
                     Message message = Message.obtain();
                     message.what = STATE_CONNECTED;
                     handler.sendMessage(message);
-
                     sendReceive=new SendReceive(socket);
                     sendReceive.start();
 
                     break;
                 }
-
             }
-
         }
-
     }
 
-
-
-    private class SendReceive extends Thread{
+    private class SendReceive extends Thread
+    {
         private final BluetoothSocket bluetoothSocket;
         private final InputStream inputStream;
-
-        public SendReceive (BluetoothSocket socket){
+        public SendReceive (BluetoothSocket socket)
+        {
             bluetoothSocket=socket;
             InputStream tempIn=null;
-            try {
+            try
+            {
                 tempIn = bluetoothSocket.getInputStream();
-            }catch (IOException e){
+            }catch (IOException e)
+            {
                 e.printStackTrace();
             }
-
             inputStream=tempIn;
         }
-        public void run(){
+        public void run()
+        {
             byte[] buffer=new byte[1024];
             int bytes;
-
-            while(true){
-                try {
+            while(true)
+            {
+                try
+                {
                     bytes=inputStream.read(buffer);
                     handler.obtainMessage(STATE_MESSAGE_RECEIVED,bytes,-1,buffer).sendToTarget();
-                }catch (IOException e){
+                }catch (IOException e)
+                {
                     Log.e(TAG, "write: Error writting to output stream. " + e.getMessage() );
                     connectionLost();
                     break;
                 }
             }
         }
-        private void connectionLost() {
+        private void connectionLost()
+        {
             // Send a failure message back to the Activity
             Message message = Message.obtain();
             message.what = STATE_CONNECTION_FAILED;
             handler.sendMessage(message);
-            try {
+            try
+            {
                 bluetoothSocket.close();
                 serverSocket.close();
                 ServerClass serverClass = new ServerClass();
                 serverClass.start();
-            } catch (IOException e) {
+            } catch (IOException e)
+            {
                 e.printStackTrace();
             }
         }
-
     }
-    public void wyslij_do_serwera(String dane){
+    public void wyslij_do_serwera(String dane)
+    {
         String[] wspolrzedne = dane.split(",");
         String myStringData = "Latitude: " + wspolrzedne[0] + ", Longitude: " + wspolrzedne[1];
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm");
@@ -193,12 +201,13 @@ public class MainActivity extends AppCompatActivity {
         Firebase myNewChild = myFirebase.child(date);
         myNewChild.setValue(myStringData);
         // zatrzymanie apki na 55 s
-        new CountDownTimer(55000, 1000) {
-
-            public void onTick(long millisUntilFinished) {
+        new CountDownTimer(55000, 1000)
+        {
+            public void onTick(long millisUntilFinished)
+            {
             }
-
-            public void onFinish() {
+            public void onFinish()
+            {
             }
         }.start();
     }
